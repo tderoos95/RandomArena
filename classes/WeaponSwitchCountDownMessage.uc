@@ -1,14 +1,9 @@
 class WeaponSwitchCountDownMessage extends CriticalEventPlus
 	abstract;
 
-var const string MessagePrefix;
-
-static function string GetString(optional int Switch, optional PlayerReplicationInfo RelatedPRI_1, optional PlayerReplicationInfo RelatedPRI_2, optional Object OptionalObject)
+static function string GetString(optional int Switch, optional PlayerReplicationInfo RelatedPRI_1, optional PlayerReplicationInfo RelatedPRI_2, optional Object Args)
 {
-    local string NextWeaponName;
-    // may need to be replicated in MP
-    NextWeaponName = class'MutRandomArena'.default.NextWeaponName;
-    return NextWeaponName $" in "$ Switch;
+    return WeaponSwitchCountDownMessageArgs(Args).NextWeaponName $" in "$ Switch;
 }
 
 defaultproperties

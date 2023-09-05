@@ -10,20 +10,18 @@ var class<Weapon> CurrentWeapon;
 var class<Weapon> NextWeapon;
 var int NextWeaponSwitch;
 var int NextWeaponSwitchCountdown;
-var string NextWeaponName;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
 
-    log("Initializing RandomArena mutator...", 'RandomArena');
-    log("Loading settings...", 'RandomArena');
+    log("Initializing RandomArena mutator", 'RandomArena');
 
     Settings = new class'RandomArenaSettings';
     Settings.SaveConfig();
     SaveConfig();
 
-    log("Settings loaded, interval configured to " $Settings.WeaponSwitchIntervalInSeconds$ ", using " 
+    log("Settings loaded, weapon switch interval is configured to " $Settings.WeaponSwitchIntervalInSeconds$ ", using " 
         $Settings.Weapons.Length$ " weapons.", 'RandomArena');
     
     PickNextWeapon();
@@ -38,7 +36,7 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
 
     if(Weapon(Other) != None && !bIsCurrentWeapon)
         return false;
-    if (WeaponPickup(Other) != None)
+    else if (WeaponPickup(Other) != None)
         return false;
     else if(Settings.bRemoveBonusPickups && Pickup(Other) != None)
         return false;
@@ -48,7 +46,14 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
 
 function PickNextWeapon()
 {
-    NextWeapon = Settings.Weapons[Rand(Settings.Weapons.Length)];
+    if(Settings.Weapons.Length == 1)
+    {
+        NextWeapon = Settings.Weapons[0];
+        return;
+    }
+
+    while (NextWeapon == None || NextWeapon == CurrentWeapon)
+        NextWeapon = Settings.Weapons[Rand(Settings.Weapons.Length)];
 }
 
 function MatchStarting()
@@ -65,17 +70,24 @@ function CalculateNextWeaponSwitch()
 
 function ModifyPlayer(Pawn Other)
 {
-    Super.ModifyPlayer(Other);
+    local InfiniteAmmoInventory InfAmmoInv;
 
+    Super.ModifyPlayer(Other);
     RemoveAllWeapons(Other);
+
+    InfAmmoInv = Spawn(class'InfiniteAmmoInventory', Other);
     Other.GiveWeapon(string(CurrentWeapon));
+    Other.AddInventory(InfAmmoInv);
 }
 
 function RemoveAllWeapons(Pawn Other)
 {
     local Inventory Inv;
 
-    for (Inv=Other.Inventory; Inv != None; Inv=Inv.Inventory)
+    if(Other.Inventory == None)
+        return;
+
+    for (Inv = Other.Inventory; Inv != None; Inv = Inv.Inventory)
     {
         if(Weapon(Inv) != None)
         {
@@ -102,13 +114,16 @@ function HandleWeaponSwitchCountdown()
 
     TimeRemaining = NextWeaponSwitch - Level.TimeSeconds;
     TimeRemaining++; // HandleWeaponSwitchCountdown is called a second later
-    SendMessageToAllPlayers(TimeRemaining);
+    AnnounceNextWeaponCountdown(TimeRemaining);
 }
 
-function SendMessageToAllPlayers(int TimeRemaining)
+function AnnounceNextWeaponCountdown(int SecondsRemaining)
 {
-    class'MutRandomArena'.default.NextWeaponName = NextWeapon.default.ItemName;
-	BroadcastLocalizedMessage(class'WeaponSwitchCountDownMessage',TimeRemaining);
+    local WeaponSwitchCountDownMessageArgs Args;
+
+    Args = new class'WeaponSwitchCountDownMessageArgs';
+    Args.NextWeaponName = NextWeapon.default.ItemName;
+	BroadcastLocalizedMessage(class'WeaponSwitchCountDownMessage',SecondsRemaining,,,Args);
 }
 
 function HandleWeaponSwitch() 
