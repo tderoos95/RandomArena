@@ -1,16 +1,16 @@
 //=============================================================================
-// RandomArena, mutator originally made for UT99
+// RandomArena, mutator originally made in UT99.
 // Recreated for UT2004 by Infy, Unreal Universe.
 //=============================================================================
 class MutRandomArena extends Mutator
     config(RandomArena);
 
 var RandomArenaSettings Settings;
+var MutatorReplicationInfo MRI;
 var class<Weapon> CurrentWeapon;
 var class<Weapon> NextWeapon;
 var int NextWeaponSwitch;
 var int NextWeaponSwitchCountdown;
-var MutatorReplicationInfo MRI;
 
 function PreBeginPlay()
 {
@@ -65,11 +65,13 @@ function PickNextWeapon()
     if(Settings.Weapons.Length == 1)
     {
         NextWeapon = Settings.Weapons[0];
+        MRI.NextWeaponName = NextWeapon.default.ItemName;
         return;
     }
 
     while (NextWeapon == None || NextWeapon == CurrentWeapon)
         NextWeapon = Settings.Weapons[Rand(Settings.Weapons.Length)];
+    MRI.NextWeaponName = NextWeapon.default.ItemName;
 }
 
 function MatchStarting()
@@ -137,8 +139,6 @@ function AnnounceNextWeaponCountdown(int SecondsRemaining)
 {
     local RandomArenaClientReplication ClientReplication;
     local Controller C;
-
-    MRI.NextWeaponName = NextWeapon.default.ItemName;
 
     for (C = Level.ControllerList; C != None && PlayerController(C) != None; C = C.NextController)
     {
