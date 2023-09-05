@@ -10,6 +10,7 @@ var class<Weapon> CurrentWeapon;
 var class<Weapon> NextWeapon;
 var int NextWeaponSwitch;
 var int NextWeaponSwitchCountdown;
+var MutatorReplicationInfo MRI;
 
 function PreBeginPlay()
 {
@@ -23,6 +24,8 @@ function PreBeginPlay()
 
     log("Settings loaded, weapon switch interval is configured to " $Settings.WeaponSwitchIntervalInSeconds$ ", using " 
         $Settings.Weapons.Length$ " weapons.", 'RandomArena');
+    
+    MRI = Spawn(class'MutatorReplicationInfo');
     
     PickNextWeapon();
     HandleWeaponSwitch();
@@ -40,8 +43,21 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
         return false;
     else if(Settings.bRemoveBonusPickups && Pickup(Other) != None)
         return false;
+    
+    if(PlayerReplicationInfo(Other) != None && PlayerController(Other.Owner) != None)
+        AddClientReplication(Other);
 
     return true;
+}
+
+function AddClientReplication(Actor Other)
+{
+    local RandomArenaClientReplication ClientReplication;
+    
+    ClientReplication = Spawn(class'RandomArenaClientReplication', Other.Owner);
+    ClientReplication.MRI = MRI;
+    ClientReplication.NextReplicationInfo = PlayerReplicationInfo(Other).CustomReplicationInfo;
+    PlayerReplicationInfo(Other).CustomReplicationInfo = ClientReplication;
 }
 
 function PickNextWeapon()
@@ -119,11 +135,30 @@ function HandleWeaponSwitchCountdown()
 
 function AnnounceNextWeaponCountdown(int SecondsRemaining)
 {
-    local WeaponSwitchCountDownMessageArgs Args;
+    local RandomArenaClientReplication ClientReplication;
+    local Controller C;
 
-    Args = new class'WeaponSwitchCountDownMessageArgs';
-    Args.NextWeaponName = NextWeapon.default.ItemName;
-	BroadcastLocalizedMessage(class'WeaponSwitchCountDownMessage',SecondsRemaining,,,Args);
+    MRI.NextWeaponName = NextWeapon.default.ItemName;
+
+    for (C = Level.ControllerList; C != None && PlayerController(C) != None; C = C.NextController)
+    {
+        ClientReplication = GetReplication(C);
+        if(ClientReplication != None)
+            ClientReplication.AnnounceNextWeaponCountdown(SecondsRemaining);
+    }
+}
+
+static function RandomArenaClientReplication GetReplication(Controller C)
+{
+    local LinkedReplicationInfo LRI;
+
+    for (LRI = C.PlayerReplicationInfo.CustomReplicationInfo; LRI != None; LRI = LRI.NextReplicationInfo)
+    {
+        if(RandomArenaClientReplication(LRI) != None)
+            return RandomArenaClientReplication(LRI);
+    }
+
+    return None;
 }
 
 function HandleWeaponSwitch() 
@@ -152,4 +187,5 @@ defaultproperties {
     FriendlyName="Random Arena"
     GroupName="RandomArena"
     Description="Gives players random weapons every x seconds. The time between weapon switches and the used weapons can be configured in the mutator's configuration file."
+    bAddToServerPackages=True
 }
