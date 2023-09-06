@@ -2,12 +2,10 @@ class RandomArenaSettings extends Object
     config(RandomArena);
 
 var globalconfig int WeaponSwitchIntervalInSeconds;
-var globalconfig bool bRemoveBonusPickups;
 var globalconfig array<class<Weapon> > Weapons;
 
 defaultproperties {
-    WeaponSwitchIntervalInSeconds=15
-    bRemoveBonusPickups=true
+    WeaponSwitchIntervalInSeconds=25
     Weapons(0)=class'ShieldGun'
     Weapons(1)=class'AssaultRifle'
     Weapons(2)=class'BioRifle'

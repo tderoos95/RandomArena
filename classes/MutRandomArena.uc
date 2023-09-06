@@ -39,9 +39,7 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
 
     if(Weapon(Other) != None && !bIsCurrentWeapon)
         return false;
-    else if (WeaponPickup(Other) != None)
-        return false;
-    else if(Settings.bRemoveBonusPickups && Pickup(Other) != None)
+    else if (WeaponPickup(Other) != None || UTAmmoPickup(Other) != None)
         return false;
     
     if(PlayerReplicationInfo(Other) != None && PlayerController(Other.Owner) != None)
@@ -180,6 +178,13 @@ function HandleWeaponSwitch()
 
         RemoveAllWeapons(Other);
         Other.GiveWeapon(string(CurrentWeapon));
+
+        // reset weapon ambient sounds
+        Other.AmbientSound = None;
+
+        // reset zoom-in
+        if(PlayerController(C) != None)
+            PlayerController(C).ResetFOV();
     }
 }
 
