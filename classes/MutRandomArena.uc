@@ -138,8 +138,11 @@ function AnnounceNextWeaponCountdown(int SecondsRemaining)
     local RandomArenaClientReplication ClientReplication;
     local Controller C;
 
-    for (C = Level.ControllerList; C != None && PlayerController(C) != None; C = C.NextController)
+    for (C = Level.ControllerList; C != None; C = C.NextController)
     {
+        if(PlayerController(C) == None)
+            continue;
+
         ClientReplication = GetReplication(C);
         if(ClientReplication != None)
             ClientReplication.AnnounceNextWeaponCountdown(SecondsRemaining);
